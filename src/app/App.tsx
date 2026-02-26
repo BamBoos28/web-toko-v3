@@ -1,5 +1,5 @@
 // App.tsx
-import React, { Suspense, lazy } from "react";
+import { Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 
 /** Lazy-loaded pages */
