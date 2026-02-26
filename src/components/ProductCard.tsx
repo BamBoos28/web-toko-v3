@@ -39,6 +39,7 @@ export default function ProductCard({ product }: { product: Product }) {
       id: string;
       qty: number;
       name: string;
+      cat: string;
       price: number;
       img: string;
     }[] = stored ? JSON.parse(stored) : [];
@@ -50,6 +51,7 @@ export default function ProductCard({ product }: { product: Product }) {
         id: product.id,
         qty,
         name: product.nama,
+        cat: product.kategori,
         price: product.harga,
         img: product.img,
       });

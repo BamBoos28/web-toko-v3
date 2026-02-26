@@ -64,7 +64,9 @@ function Icon({
 
       {/* Informasi */}
       <div className="text-center xl:text-left">
-        <h1 className="hidden md:block font-bold text-sm xl:text-lg tracking-wide leading-tight">
+        <h1 className={`hidden md:block font-bold text-sm xl:text-lg tracking-wide leading-tight ${
+          isActive ? "text-green-50" : "text-neutral-500"
+        }`}>
           {header}
         </h1>
         <p className={`hidden xl:block text-[11px] mt-1 leading-relaxed ${

@@ -10,6 +10,7 @@ type CartItem = {
   name: string;
   price: number;
   img: string;
+  cat: string;
 };
 
 /** Utility: format angka menjadi IDR (tanpa desimal) */
@@ -33,9 +34,10 @@ function readCart(): CartItem[] {
       .map((p) => ({
         id: String(p.id ?? ""),
         name: String(p.name ?? ""),
+        cat: String(p.cat ?? "Lainnya"),
         qty: Number.isFinite(Number(p.qty)) ? Math.max(0, Number(p.qty)) : 0,
         price: Number.isFinite(Number(p.price)) ? Number(p.price) : 0,
-        img: String(p.img),
+        img: String(p.img ?? ""),
       }))
       .filter((i) => i.id && i.name && i.qty > 0);
   } catch {
@@ -83,7 +85,7 @@ export default function Cart() {
       navigate("/profil", { replace: true });
       showToast("Isi data diri dahulu", { variant: "error", duration: 1800 });
     }
-  }, []);
+  }, [navigate, showToast]);
 
   // load on mount
   useEffect(() => {
@@ -104,11 +106,26 @@ export default function Cart() {
     return s;
   }, [items]);
 
+  // grouped by category (array of [cat, items[]]) - stable order: sorted by cat name
+  const grouped = useMemo(() => {
+    const map = new Map<string, CartItem[]>();
+    for (const it of items) {
+      const cat = it.cat && it.cat.trim() ? it.cat.trim() : "Lainnya";
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(it);
+    }
+    // sort categories alphabetically (optional)
+    const entries = Array.from(map.entries()).sort((a, b) =>
+      a[0].localeCompare(b[0], undefined, { sensitivity: "base" })
+    );
+    return entries;
+  }, [items]);
+
   // update item qty from edit state
   function handleUpdate(id: string) {
     const newQty = Math.max(1, Math.floor(Number(editQty[id] ?? 1)));
     const updated = items.map((it) =>
-      it.id === id ? { ...it, qty: newQty } : it,
+      it.id === id ? { ...it, qty: newQty } : it
     );
     setItems(updated);
     writeCart(updated);
@@ -166,6 +183,7 @@ export default function Cart() {
       inline?: boolean;
     }[];
     timestamp?: string;
+    footer?: { text?: string };
   };
 
   async function sendWebhook(embeds: Embed[]) {
@@ -176,14 +194,19 @@ export default function Cart() {
       return;
     }
 
-    await fetch(webhook, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: null,
-        embeds,
-      }),
-    });
+    try {
+      await fetch(webhook, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: null,
+          embeds,
+        }),
+      });
+    } catch (err) {
+      console.error("Gagal kirim webhook:", err);
+      throw err;
+    }
   }
 
   // checkout action
@@ -195,23 +218,50 @@ export default function Cart() {
         variant: "warning",
         duration: 1800,
       });
+      setIsLoading(false);
       return;
     }
 
     try {
-      const orderDetails = items
-        .map(
-          (item, i) =>
-            `${i + 1}. ${item.name} x ${item.qty}  
-Rp ${(item.price * item.qty).toLocaleString("id-ID")}`,
-        )
-        .join("\n");
+      // Build embed fields grouped by category
+      const fields: Embed["fields"] = [];
 
-      const totalHarga = items.reduce(
-        (sum, item) => sum + item.price * item.qty,
-        0,
-      );
+      for (const [cat, groupItems] of grouped) {
+        // lines per item
+        const lines: string[] = groupItems.map((it, i) => {
+          const subtotal = it.price * it.qty;
+          return `${i + 1}. ${it.name} x ${it.qty} — ${formatRupiah(
+            subtotal
+          )}`;
+        });
 
+        const catSubtotal = groupItems.reduce(
+          (s, it) => s + it.price * it.qty,
+          0
+        );
+
+        // guard: Discord field max 1024 chars — if exceed, truncate gracefully
+        let value = lines.join("\n");
+        const summary = `\n**Subtotal: ${formatRupiah(catSubtotal)}**\n\n`;
+        if (value.length + summary.length > 1000) {
+          // keep first N lines until length limit
+          let acc = "";
+          for (const l of lines) {
+            if (acc.length + l.length + 1 > 900) break;
+            acc += (acc ? "\n" : "") + l;
+          }
+          value = acc + "\n\n(daftar panjang, lihat panel admin untuk detail)" ;
+        }
+        value += summary;
+
+        fields.push({
+          name: `📦 ${cat}`,
+          value: value || "-",
+          inline: false,
+        });
+      }
+
+      // user info
       const userDataRaw = localStorage.getItem("userData");
       const user = userDataRaw ? JSON.parse(userDataRaw) : {};
 
@@ -220,34 +270,48 @@ Rp ${(item.price * item.qty).toLocaleString("id-ID")}`,
         `📱 **No WA**: ${user.nomorWa ?? "-"}`,
         `📍 **Alamat**: ${user.alamat ?? "-"}`,
         `🏠 **Detail**: ${user.detailRumah ?? "-"}`,
+        `💵 **Total**: ${formatRupiah(total) ?? "-"}`,
       ].join("\n");
 
-      const embeds = [
-        {
-          title: "🛒 Pesanan Baru",
-          color: 0x22c55e, // hijau
-          fields: [
-            {
-              name: "🧾 Rincian Pesanan",
-              value:
-                orderDetails +
-                `\n\n💰 **Total: Rp ${totalHarga.toLocaleString("id-ID")}**`,
-              inline: true,
-            },
-            {
-              name: "📦 Data Penerima",
-              value: userInfo,
-              inline: true,
-            },
-          ],
-          footer: {
-            text: "Pesanan dikirim dari aplikasi (Vite)",
-          },
-          timestamp: new Date().toISOString(),
-        },
-      ];
+      // Ensure we don't exceed 25 fields: if too many categories, combine remainder
+      if (fields.length > 23) {
+        // keep first 23 fields, combine rest
+        const keep = fields.slice(0, 23);
+        const rest = fields.slice(23);
+        const combinedValue = rest
+          .map((f) => `**${f.name}**\n${f.value}`)
+          .join("\n\n");
+        keep.push({
+          name: "📚 Lainnya",
+          value:
+            combinedValue.length > 900
+              ? combinedValue.slice(0, 900) + "\n\n(terpotong)"
+              : combinedValue,
+          inline: false,
+        });
+        // replace fields with new
+        // @ts-ignore
+        fields.length = 0;
+        // push the keep content
+        keep.forEach((f) => fields.push(f));
+      }
 
-      await sendWebhook(embeds);
+      // Push user info as one field
+      fields.push({
+        name: "\n\n📦 Data Penerima",
+        value: userInfo,
+        inline: false,
+      });
+
+      const embed: Embed = {
+        title: "🛒 Pesanan Baru",
+        color: 0x22c55e,
+        fields,
+        footer: { text: "Pesanan dikirim dari aplikasi (Vite)" },
+        timestamp: new Date().toISOString(),
+      };
+
+      await sendWebhook([embed]);
 
       // clear cart (demo)
       writeCart([]);
@@ -297,103 +361,115 @@ Rp ${(item.price * item.qty).toLocaleString("id-ID")}`,
               Keranjang kosong.
             </div>
           ) : (
-            <div className="space-y-4">
-              {items.map((it) => (
-                <div
-                  key={it.id}
-                  className="flex gap-3 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center"
-                >
-                  {/* image */}
-                  <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-gray-100">
-                    <img
-                      src={it.img || "/bgs.png"}
-                      alt={it.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-
-                  {/* main info */}
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="font-semibold text-slate-800">
-                          {it.name}
-                        </div>
-                        <div className="mt-1 text-sm text-slate-600">
-                          {formatRupiah(it.price)}
-                        </div>
-                      </div>
-
-                      <div className="text-right text-sm text-slate-500">
-                        Qty: {it.qty}
-                      </div>
-                    </div>
-
-                    {/* controls row */}
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-white">
-                        <button
-                          onClick={() => changeEditQty(it.id, -1)}
-                          className="h-8 w-8 rounded bg-gray-100"
-                          aria-label={`Kurangi qty ${it.name}`}
-                        >
-                          −
-                        </button>
-
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={String(editQty[it.id] ?? it.qty)}
-                          onChange={(e) =>
-                            handleQtyInput(it.id, e.target.value)
-                          }
-                          className="w-9 rounded border border-gray-100 px-2 py-1 text-center text-sm"
-                          aria-label={`Jumlah ${it.name}`}
-                        />
-
-                        <button
-                          onClick={() => changeEditQty(it.id, 1)}
-                          className="h-8 w-8 rounded bg-gray-100"
-                          aria-label={`Tambah qty ${it.name}`}
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      {/* Delete / Confirm buttons */}
-                      {confirmId === it.id ? (
-                        <>
-                          <button
-                            onClick={() => confirmDelete(it.id)}
-                            className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
-                          >
-                            Ya
-                          </button>
-                          <button
-                            onClick={cancelConfirm}
-                            className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-slate-700"
-                          >
-                            Tidak
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleUpdate(it.id)}
-                            className="bg-yellow rounded-md px-3 py-2 text-sm font-medium text-white hover:opacity-90"
-                          >
-                            Update
-                          </button>
-
-                          <button
-                            onClick={() => startConfirmDelete(it.id)}
-                            className="ml-auto rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
-                          >
-                            Hapus
-                          </button>
-                        </>
+            <div className="space-y-6">
+              {/* Render per-category */}
+              {grouped.map(([cat, catItems]) => (
+                <div key={cat} className="rounded-lg bg-white p-4 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="font-semibold text-slate-800">{cat}</h2>
+                    <div className="text-sm text-slate-600">
+                      {formatRupiah(
+                        catItems.reduce((s, it) => s + it.price * it.qty, 0)
                       )}
                     </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {catItems.map((it) => (
+                      <div
+                        key={it.id}
+                        className="flex gap-3 rounded-md p-2 hover:bg-gray-50"
+                      >
+                        <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-gray-100">
+                          <img
+                            src={it.img || "/bgs.png"}
+                            alt={it.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <div className="font-semibold text-slate-800">
+                                {it.name}
+                              </div>
+                              <div className="mt-1 text-sm text-slate-600">
+                                {formatRupiah(it.price)}
+                              </div>
+                            </div>
+
+                            <div className="text-right text-sm text-slate-500">
+                              Qty: {it.qty}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-white">
+                              <button
+                                onClick={() => changeEditQty(it.id, -1)}
+                                className="h-8 w-8 rounded bg-gray-100"
+                                aria-label={`Kurangi qty ${it.name}`}
+                              >
+                                −
+                              </button>
+
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={String(editQty[it.id] ?? it.qty)}
+                                onChange={(e) =>
+                                  handleQtyInput(it.id, e.target.value)
+                                }
+                                className="w-9 rounded border border-gray-100 px-2 py-1 text-center text-sm"
+                                aria-label={`Jumlah ${it.name}`}
+                              />
+
+                              <button
+                                onClick={() => changeEditQty(it.id, 1)}
+                                className="h-8 w-8 rounded bg-gray-100"
+                                aria-label={`Tambah qty ${it.name}`}
+                              >
+                                +
+                              </button>
+                            </div>
+
+                            {confirmId === it.id ? (
+                              <>
+                                <button
+                                  onClick={() => confirmDelete(it.id)}
+                                  className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+                                >
+                                  Ya
+                                </button>
+                                <button
+                                  onClick={cancelConfirm}
+                                  className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-slate-700"
+                                >
+                                  Tidak
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleUpdate(it.id)}
+                                  className="bg-yellow rounded-md px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+                                >
+                                  Update
+                                </button>
+
+                                <button
+                                  onClick={() => startConfirmDelete(it.id)}
+                                  className="ml-auto rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+                                >
+                                  Hapus
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
