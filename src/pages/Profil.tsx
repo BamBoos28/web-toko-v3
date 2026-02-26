@@ -253,9 +253,9 @@ export default function Profile() {
             </p>
 
             <ul className="mb-3 ml-4 list-disc text-sm text-slate-700">
-              <li>Pembelian minimum <strong>Rp 100.000</strong> (belanja bersih).</li>
+              <li>Pembelian minimum <strong>Rp 100.000</strong></li>
               <li>Berlaku untuk alamat di Desa Margorejo dan area sekitarnya.</li>
-              <li>Promo berlaku Senin — Jum'at (09:00 — 17:00).</li>
+              {/* <li>Promo berlaku MInggu dan Senin.</li> */}
             </ul>
           </div>
         </div>
