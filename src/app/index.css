@@ -1,0 +1,41 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  font-family: "Google Sans", sans-serif;
+  /* Gunakan variabel agar konsisten */
+  color: var(--text-dark);
+}
+
+:root {
+  /* Hijau Utama & Background */
+  --primary-green: #1B5E20;
+  --action-green: #4CAF50;
+  --bg-green-light: #F5FBF5;
+  
+  /* Kuning (Aksen/Promo) */
+  --action-yellow: #FFC107;
+  --yellow-light: #FFF8E1;
+  
+  /* Netral */
+  --text-dark: #212121;
+  --white: #FFFFFF;
+  --gray-light: #E0E0E0;
+}
+
+/* --- Background Classes --- */
+.bg-primary { background-color: var(--primary-green); }
+.bg-action { background-color: var(--action-green); }
+.bg-yellow { background-color: var(--action-yellow); }
+.bg-yellow-light { background-color: var(--yellow-light); }
+.bg-light { background-color: var(--bg-green-light); }
+
+/* --- Text Color Classes --- */
+.text-primary { color: var(--primary-green); }
+.text-action { color: var(--action-green); }
+.text-yellow { color: var(--action-yellow); }
+.text-main { color: var(--text-dark); }
+.text-white { color: var(--white); }
+
