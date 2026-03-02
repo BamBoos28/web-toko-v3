@@ -199,15 +199,19 @@ export default function Profile() {
           </a>
         </div>
 
-                {/* NEW: Collapse promo gratis ongkir */}
+        {/* NEW: Collapse promo gratis ongkir */}
         <div className="mt-4 px-2">
           <button
             onClick={() => setPromoOpen((s) => !s)}
             aria-expanded={promoOpen}
-            className="flex w-full items-center justify-between gap-3 rounded-xl bg-action py-3 px-3 shadow-md transition-transform active:scale-95"
+            className="bg-action flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 shadow-md transition-transform active:scale-95"
           >
             <div className="flex items-center gap-3">
-              <img src="dollar.svg" alt="Promo" className="h-6 w-6 brightness-0 invert" />
+              <img
+                src="dollar.svg"
+                alt="Promo"
+                className="h-6 w-6 brightness-0 invert"
+              />
               <div className="text-left">
                 <div className="text-main text-sm font-bold uppercase tracking-wider text-white">
                   Gratis Ongkir
@@ -216,7 +220,7 @@ export default function Profile() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white font-semibold">
+              <span className="text-xs font-semibold text-white">
                 {promoOpen ? "Tutup" : "Lihat"}
               </span>
               {/* simple chevron */}
@@ -242,26 +246,26 @@ export default function Profile() {
           {/* content area (dibuka/tutup) */}
           <div
             className={`mt-3 overflow-hidden rounded-md bg-white p-4 shadow-sm transition-all ${
-              promoOpen ? "max-h-[800px] opacity-100 block" : "max-h-0 hidden"
+              promoOpen ? "block max-h-[800px] opacity-100" : "hidden max-h-0"
             }`}
             aria-hidden={!promoOpen}
           >
-            {/* isi teks promo */}
-            <p className="mb-2 text-sm text-slate-800">
-              Promo Gratis Ongkir untuk area <strong>Desa Margorejo</strong> dan
-              sekitarnya. Syarat & ketentuan singkat:
+            <p className="mb-2 text-sm font-semibold text-slate-800">
+              Nikmati promo pengiriman gratis:
             </p>
-
             <ul className="mb-3 ml-4 list-disc text-sm text-slate-700">
-              <li>Pembelian minimum <strong>Rp 100.000</strong></li>
-              <li>Berlaku untuk alamat di Desa Margorejo dan area sekitarnya.</li>
-              {/* <li>Promo berlaku MInggu dan Senin.</li> */}
+              <li>
+                <strong>Gratis Ongkir</strong> dengan belanja minimal <strong>Rp 100.000</strong>.
+              </li>
+              <li>
+                <strong>Gratis Ongkir</strong> khusus area <strong>Desa Margorejo</strong> & sekitarnya.
+              </li>
             </ul>
           </div>
         </div>
 
         {/* IconList */}
-          <IconList />
+        <IconList />
 
         <BottomNavbar />
       </div>

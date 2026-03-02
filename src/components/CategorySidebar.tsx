@@ -96,7 +96,7 @@ export default function CategorySidebar({
                     }`}
                     aria-current={isActive ? "true" : undefined}
                   >
-                    {c === "all" ? "Semua Kategori" : c}
+                    {c === "all" ? "Semua Item" : c}
                   </button>
                 </li>
               );

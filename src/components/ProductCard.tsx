@@ -67,7 +67,7 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <article className="flex flex-col overflow-hidden rounded-xl bg-white shadow-sm">
       {/* IMAGE */}
-      <div className="relative h-40 bg-gray-100">
+      <div className="relative h-52 bg-gray-100">
         <img
           src={product.img || "/bgs.png"}
           alt={product.nama}
@@ -116,7 +116,7 @@ export default function ProductCard({ product }: { product: Product }) {
         {open && (
           <div
             id={`prod-desc-${product.id}`}
-            className="mt-2 text-sm text-slate-600"
+            className=" text-sm text-slate-600"
             role="region"
             aria-label={`Deskripsi ${product.nama}`}
           >
@@ -128,7 +128,7 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
         )}
 
-        <div className="mt-3 text-sm text-slate-900">
+        <div className=" text-sm text-slate-900">
           {formatRupiah(product.harga)}
         </div>
 
