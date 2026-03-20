@@ -243,24 +243,100 @@ export default function Profile() {
             </div>
           </button>
 
-          {/* content area (dibuka/tutup) */}
+          {/* Content Area (Promo Gratis Ongkir) */}
           <div
-            className={`mt-3 overflow-hidden rounded-md bg-white p-4 shadow-sm transition-all ${
-              promoOpen ? "block max-h-[800px] opacity-100" : "hidden max-h-0"
+            className={`mt-3 overflow-hidden transition-all duration-300 ease-in-out ${
+              promoOpen
+                ? "max-h-[800px] translate-y-0 transform opacity-100"
+                : "max-h-0 -translate-y-2 transform opacity-0"
             }`}
             aria-hidden={!promoOpen}
           >
-            <p className="mb-2 text-sm font-semibold text-slate-800">
-              Nikmati promo pengiriman gratis:
-            </p>
-            <ul className="mb-3 ml-4 list-disc text-sm text-slate-700">
-              <li>
-                <strong>Gratis Ongkir</strong> dengan belanja minimal <strong>Rp 100.000</strong>.
-              </li>
-              <li>
-                <strong>Gratis Ongkir</strong> khusus area <strong>Desa Margorejo</strong> & sekitarnya.
-              </li>
-            </ul>
+            <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Berbagai Promo Menanti
+              </p>
+
+              <div className="space-y-3">
+                {/* Opsi 1: Minimal Belanja */}
+                <div className="flex items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
+                  <div className="mt-0.5 flex-shrink-0 text-emerald-600">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold leading-tight text-emerald-900">
+                      Belanja Hemat
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-emerald-700">
+                      Gratis ongkir dengan belanja minimal{" "}
+                      <span className="font-bold underline decoration-emerald-200">
+                        Rp 100.000
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Pembatas ATAU */}
+                <div className="relative flex items-center py-1">
+                  <div className="flex-grow border-t border-slate-100"></div>
+                  <span className="mx-3 flex-shrink text-[9px] font-black tracking-tighter">
+                    ATAU
+                  </span>
+                  <div className="flex-grow border-t border-slate-100"></div>
+                </div>
+
+                {/* Opsi 2: Area Lokal */}
+                <div className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+                  <div className="mt-0.5 flex-shrink-0 text-blue-600">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold leading-tight text-blue-900">
+                      Khusus Tetangga
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-blue-700">
+                      Gratis ongkir tanpa minimal belanja untuk area{" "}
+                      <span className="font-bold underline decoration-blue-200">
+                        Desa Margorejo
+                      </span>{" "}
+                      & sekitarnya.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

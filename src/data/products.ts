@@ -4,9 +4,11 @@ export type Product = {
   id: string;
   nama: string;
   desc: string;
-  harga: number;
+  harga: number;      // harga asli
+  discount: number;   // potongan nominal
+  isDiscount: boolean;
   img: string;
   kategori: string;
-  stock: number; // 0 / 1 (lebih kompatibel)
+  stock: number;
 };
 

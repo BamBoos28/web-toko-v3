@@ -35,65 +35,72 @@ export default function Dashboard() {
   const dataUrlRef = useRef(DATA_URL);
 
   /** ====== FETCH (with AbortController) ====== */
-  useEffect(() => {
-    const controller = new AbortController();
-    let mounted = true;
+useEffect(() => {
+  const controller = new AbortController();
+  let mounted = true;
 
-    async function load() {
-      try {
-        setLoading(true);
+  async function load() {
+    try {
+      setLoading(true);
 
-        const res = await fetch(dataUrlRef.current, { signal: controller.signal });
-        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+      const res = await fetch(dataUrlRef.current, { signal: controller.signal });
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
 
-        const json = await res.json();
-        const rows: any[][] = Array.isArray(json?.values) ? json.values : [];
+      const json = await res.json();
+      const rows: any[][] = Array.isArray(json?.values) ? json.values : [];
 
-        // skip header if present
-        const [, ...dataRows] = rows;
+      // skip header row
+      const [, ...dataRows] = rows;
 
-        const parsed = dataRows.map((row, idx) => {
-          const name = (row?.[0] ?? "").toString().trim();
-          const desc = (row?.[1] ?? "").toString().trim();
-          const priceRaw = (row?.[2] ?? "").toString().trim();
-          const imgRaw = (row?.[3] ?? "").toString().trim();
-          const categoryCell = (row?.[4] ?? "Lainnya").toString().trim();
-          const stockRaw = (row?.[5] ?? "0").toString().trim();
+      const parsed = dataRows.map((row, idx) => {
+        const name = (row?.[0] ?? "").toString().trim();
+        const desc = (row?.[1] ?? "").toString().trim();
+        const priceRaw = (row?.[2] ?? "0").toString().trim();
+        const discountRaw = (row?.[3] ?? "0").toString().trim();
+        const isDiscountRaw = (row?.[4] ?? "0").toString().trim();
+        const imgRaw = (row?.[5] ?? "").toString().trim();
+        const categoryCell = (row?.[6] ?? "Lainnya").toString().trim();
+        const stockRaw = (row?.[7] ?? "0").toString().trim();
 
-          const harga = Number(priceRaw.replace(/[^\d.-]/g, "")) || 0;
-          const stock = Number(stockRaw.replace(/[^\d.-]/g, "")) || 0;
-          const img = imgRaw.replace(/\s+/g, "").replace(/^https?:\s*\/\//, "https://");
+        const harga = Number(priceRaw.replace(/[^\d.-]/g, "")) || 0;
+        const discount = Number(discountRaw.replace(/[^\d.-]/g, "")) || 0;
+        const isDiscount =
+          isDiscountRaw === "1" ||
+          isDiscountRaw.toLowerCase() === "true" ||
+          isDiscountRaw.toLowerCase() === "yes";
 
-          return {
-            id: `p-${idx}`,
-            nama: name,
-            desc,
-            harga,
-            img,
-            kategori: categoryCell || "Lainnya",
-            stock,
-          } as Product;
-        });
+        const stock = Number(stockRaw.replace(/[^\d.-]/g, "")) || 0;
+        const img = imgRaw.replace(/\s+/g, "").replace(/^https?:\s*\/\//, "https://");
 
-        if (mounted) setProducts(parsed);
-      } catch (err: any) {
-        if (err?.name === "AbortError") {
-          // ignore abort
-          return;
-        }
-        console.error("Gagal load data produk (sheets):", err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
+        return {
+          id: `p-${idx}`,
+          nama: name,
+          desc,
+          harga,
+          discount,
+          isDiscount,
+          img,
+          kategori: categoryCell || "Lainnya",
+          stock,
+        } as Product;
+      });
+
+      if (mounted) setProducts(parsed);
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
+      console.error("Gagal load data produk (sheets):", err);
+    } finally {
+      if (mounted) setLoading(false);
     }
+  }
 
-    load();
+  load();
 
-    return () => {
-      mounted = false;
-      controller.abort();
-    };
-  }, []); // DATA_URL stable from env; if not, add it here
+  return () => {
+    mounted = false;
+    controller.abort();
+  };
+}, []);
 
   /** ====== DERIVED DATA (memoized) ====== */
   const categories = useMemo(() => {

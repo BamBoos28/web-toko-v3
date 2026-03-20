@@ -1,4 +1,3 @@
-// components/ProductCard.tsx
 import { useEffect, useState } from "react";
 import { Product } from "@/data/products";
 import { useToast } from "./ToastProvider";
@@ -13,23 +12,26 @@ function formatRupiah(n: number) {
 
 export default function ProductCard({ product }: { product: Product }) {
   const [qty, setQty] = useState(1);
-  const [open, setOpen] = useState(false); // collapse state
+  const [open, setOpen] = useState(false);
   const { showToast } = useToast();
-
 
   useEffect(() => {
     if (qty < 1) setQty(1);
   }, [qty]);
 
-  // determine description field (fallbacks)
   const description =
-    // @ts-ignore - tolerate different field names in product source
+    // @ts-ignore
     product.description ||
     // @ts-ignore
     product.deskripsi ||
     // @ts-ignore
     product.desc ||
     "";
+
+  const hasDiscount = Boolean(product.isDiscount && product.discount > 0);
+  const finalPrice = hasDiscount
+    ? Math.max(0, product.harga - product.discount)
+    : product.harga;
 
   const addToCart = () => {
     if ((product.stock ?? 0) <= 0) return alert("Stok habis");
@@ -52,7 +54,7 @@ export default function ProductCard({ product }: { product: Product }) {
         qty,
         name: product.nama,
         cat: product.kategori,
-        price: product.harga,
+        price: finalPrice,
         img: product.img,
       });
 
@@ -66,13 +68,18 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <article className="flex flex-col overflow-hidden rounded-xl bg-white shadow-sm">
-      {/* IMAGE */}
       <div className="relative h-52 bg-gray-100">
         <img
           src={product.img || "/bgs.png"}
           alt={product.nama}
           className="h-full w-full object-cover"
         />
+
+        {hasDiscount && (
+          <div className="absolute left-2 top-2 rounded-full bg-red-600 px-2 py-1 text-xs font-bold text-white shadow">
+            Diskon {formatRupiah(product.discount)}
+          </div>
+        )}
 
         {(product.stock ?? 0) <= 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-sm font-semibold text-red-600">
@@ -81,13 +88,10 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
-      {/* CONTENT */}
       <div className="flex flex-1 flex-col px-2 py-3">
-        {/* Header: name + collapse button */}
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-bold text-slate-800">{product.nama}</h3>
 
-          {/* Collapse toggle */}
           <button
             aria-expanded={open}
             aria-controls={`prod-desc-${product.id}`}
@@ -95,7 +99,6 @@ export default function ProductCard({ product }: { product: Product }) {
             className="ml-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-sm text-slate-700"
             title={open ? "Tutup deskripsi" : "Buka deskripsi"}
           >
-            {/* simple chevron icon */}
             <svg
               className={`h-4 w-4 transform transition-transform duration-150 ${
                 open ? "rotate-180" : "rotate-0"
@@ -112,11 +115,10 @@ export default function ProductCard({ product }: { product: Product }) {
           </button>
         </div>
 
-        {/* Description (collapse) */}
         {open && (
           <div
             id={`prod-desc-${product.id}`}
-            className=" text-sm text-slate-600"
+            className="text-sm text-slate-600"
             role="region"
             aria-label={`Deskripsi ${product.nama}`}
           >
@@ -128,12 +130,22 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
         )}
 
-        <div className=" text-sm text-slate-900">
-          {formatRupiah(product.harga)}
+        <div className="mt-1 text-sm">
+          {hasDiscount ? (
+            <div className="flex gap-3">
+              <span className="text-slate-400 line-through">
+                {formatRupiah(product.harga)}
+              </span>
+              <span className="font-semibold text-red-600">
+                {formatRupiah(finalPrice)}
+              </span>
+            </div>
+          ) : (
+            <span className="text-slate-900">{formatRupiah(product.harga)}</span>
+          )}
         </div>
 
         <div className="mt-auto flex items-center gap-3 pt-3">
-          {/* COUNTER */}
           <div className="flex items-center gap-2 rounded-lg border">
             <button
               onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -154,7 +166,6 @@ export default function ProductCard({ product }: { product: Product }) {
             </button>
           </div>
 
-          {/* ADD */}
           <button
             onClick={addToCart}
             disabled={(product.stock ?? 0) <= 0}
